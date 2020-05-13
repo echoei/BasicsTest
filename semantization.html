@@ -31,7 +31,7 @@
 		class Promise1 {
 			callbackList = [];
 			status = "pending";
-			value;
+			value = null;
 			constructor(fn,name){
 				this.name = name;
 				fn(this.resolve.bind(this), this.reject.bind(this)); //1
@@ -70,11 +70,13 @@
 					}
 				}
 				else {
-					callback.reject(this.value);
+					let res = callback.onRejected(this.value);
+					callback.reject(res);
 				}
 			}
 			resolve(value){
 				//1判断value如果是一个Promise对象的话
+				// console.log(value);
 				if(value && (typeof value === "object" || typeof value === "function")){
 					//1找到它的then方法，
 					let then = value.then;
@@ -115,11 +117,10 @@
 			},"p2")
 			// resolve();
 		}).then((val)=>{
+			console.log(val);
 			return new Promise1((resolve,reject)=>{
 				reject("测试一次失败");//5
 			},"p2")
-		},(err)=>{
-			console.log("不应该啊");
 		}).then(()=>{}, (err)=>{
 			console.log(err);
 		})	
