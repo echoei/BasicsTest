@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promise</title>
+</head>
+<body>
+  <h1>这里是自己实现的Promise</h1>
+  <script text="text/script">
+		class Promise1 {
+			callbackList = [];
+			errCallbackList = [];
+			status = "pending";
+			value = null;
+			constructor(fn,name){
+				this.name = name;
+				fn(this.resolve.bind(this), this.reject.bind(this)); //1
+			}
+			then(...args){
+				let [fulfilled, rejected] = args;
+				return new Promise1((resolve, reject)=>{
+					this.handle({
+						onFulfilled: fulfilled,
+						onRejected: rejected,
+						resolve: resolve,
+						reject: reject
+					});
+				})
+			}
+
+			catch(fn) {
+				return new Promise1((resolve, reject)=>{
+					this.handle({
+						onRejected: fn,
+						reject: reject,
+						resolve: resolve
+					})
+				})
+			}
+
+			handle(callback) {
+				if(this.status === "pending") {
+					this.callbackList.push(callback);
+					return;
+				}
+				let fun = this.status === "fulfilled" ? callback.onFulfilled : callback.onRejected;
+				//如果then中一个方法都没有传的话
+				if(fun == null) {
+					let _curFun = this.status === "fulfilled" ? callback.resolve : callback.reject;
+					_curFun(this.value);
+					return;
+				}
+
+				try {
+					let res = fun(this.value);
+					//1当回调函数返回的还是一个Promise对象的时候，把值传给resolve，进行判断
+					callback.resolve(res);
+					
+				}
+				catch(err){
+					callback.reject(err);
+				}
+				// if(this.status === "fulfilled") {
+				// 	try {
+				// 		let res = fun(this.value);
+				// 		//1当回调函数返回的还是一个Promise对象的时候，把值传给resolve，进行判断
+				// 		callback.resolve(res);
+				// 	} 
+				// 	catch(err) {
+				// 		callback.reject(err);
+				// 	}
+				// }
+				// else {
+				// 	//失败之后就不在往下进行了，所以截止在这里不再调用reject
+				// 	let res = callback.onRejected(this.value);
+				// 	callback.resolve(res);
+				// }
+			}
+			resolve(value){
+				//1判断value如果是一个Promise对象的话
+				// console.log(value);
+				if(value && (typeof value === "object" || typeof value === "function")){
+					//1找到它的then方法，
+					let then = value.then;
+					if(typeof then === "function") {
+						//3次 到这里
+						//1.将成功和失败的方法绑定this传给then方法
+						then.call(value, this.resolve.bind(this), this.reject.bind(this));//4
+						return;
+					}
+				}
+				this.status = "fulfilled";
+				this.value = value;
+				setTimeout(()=>{
+					this.callbackList.forEach((temp)=>{
+						this.handle(temp);
+					})
+				},0);
+			}
+
+			reject(reason) {
+				this.status = "rejected";
+				this.value = reason;
+				setTimeout(()=>{
+					this.callbackList.forEach((temp)=>{
+						this.handle(temp);
+					})
+				})
+			}
+		}
+
+		let p = new Promise1((resolve)=>{
+			console.log("进来了哦");
+			resolve("模拟成功");//2
+		}, "p1").then((data)=>{
+			console.log(data);
+			return new Promise1((resolve,reject)=>{
+				resolve("又一次返回");//5
+			},"p2")
+			// resolve();
+		}).then((val)=>{
+			console.log(val);
+			return new Promise1((resolve,reject)=>{
+				reject("测试一次失败");//5
+			},"p2")
+		}).then(()=>{}).catch(err => {
+			console.log(err);
+			// return new Promise1((resolve)=>{
+			// 	resolve("错误之后的正确");
+			// })
+		}).then((err) =>{
+			console.log(err);
+			return "lalal"
+		}).then((aa)=>{
+			console.log(aa);
+		})	
+
+		// new Promise((resolve, reject)=>{
+		// 	reject("失败")
+		// }).then((data)=>{
+
+		// }).catch(err=>{
+		// 	console.log(err);
+		// 	// return new Promise((resolve)=>{
+		// 	// 	resolve("错误之后的正确")
+		// 	// })
+		// }).then(da => {
+		// 	console.log(da);
+		// 	// return "hahah"
+		// }).then(str=>{
+		// 	console.log(str);
+		// })
+
+		console.log("这是一个promise的练习");
+	</script>
+</body>
+</html>
