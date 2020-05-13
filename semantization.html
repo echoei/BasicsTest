@@ -30,6 +30,7 @@
 	<script text="text/script">
 		class Promise1 {
 			callbackList = [];
+			errCallbackList = [];
 			status = "pending";
 			value = null;
 			constructor(fn,name){
@@ -48,31 +49,53 @@
 				})
 			}
 
+			catch(fn) {
+				return new Promise1((resolve, reject)=>{
+					this.handle({
+						onRejected: fn,
+						reject: reject,
+						resolve: resolve
+					})
+				})
+			}
+
 			handle(callback) {
 				if(this.status === "pending") {
 					this.callbackList.push(callback);
 					return;
 				}
 				let fun = this.status === "fulfilled" ? callback.onFulfilled : callback.onRejected;
+				//如果then中一个方法都没有传的话
 				if(fun == null) {
 					let _curFun = this.status === "fulfilled" ? callback.resolve : callback.reject;
 					_curFun(this.value);
 					return;
 				}
-				if(this.status === "fulfilled") {
-					try {
-						let res = fun(this.value);
-						//1当回调函数返回的还是一个Promise对象的时候，把值传给resolve，进行判断
-						callback.resolve(res);
-					} 
-					catch(err) {
-						callback.reject(err);
-					}
+
+				try {
+					let res = fun(this.value);
+					//1当回调函数返回的还是一个Promise对象的时候，把值传给resolve，进行判断
+					callback.resolve(res);
+					
 				}
-				else {
-					let res = callback.onRejected(this.value);
-					callback.reject(res);
+				catch(err){
+					callback.reject(err);
 				}
+				// if(this.status === "fulfilled") {
+				// 	try {
+				// 		let res = fun(this.value);
+				// 		//1当回调函数返回的还是一个Promise对象的时候，把值传给resolve，进行判断
+				// 		callback.resolve(res);
+				// 	} 
+				// 	catch(err) {
+				// 		callback.reject(err);
+				// 	}
+				// }
+				// else {
+				// 	//失败之后就不在往下进行了，所以截止在这里不再调用reject
+				// 	let res = callback.onRejected(this.value);
+				// 	callback.resolve(res);
+				// }
 			}
 			resolve(value){
 				//1判断value如果是一个Promise对象的话
@@ -121,9 +144,33 @@
 			return new Promise1((resolve,reject)=>{
 				reject("测试一次失败");//5
 			},"p2")
-		}).then(()=>{}, (err)=>{
+		}).then(()=>{}).catch(err => {
 			console.log(err);
+			// return new Promise1((resolve)=>{
+			// 	resolve("错误之后的正确");
+			// })
+		}).then((err) =>{
+			console.log(err);
+			return "lalal"
+		}).then((aa)=>{
+			console.log(aa);
 		})	
+
+		// new Promise((resolve, reject)=>{
+		// 	reject("失败")
+		// }).then((data)=>{
+
+		// }).catch(err=>{
+		// 	console.log(err);
+		// 	// return new Promise((resolve)=>{
+		// 	// 	resolve("错误之后的正确")
+		// 	// })
+		// }).then(da => {
+		// 	console.log(da);
+		// 	// return "hahah"
+		// }).then(str=>{
+		// 	console.log(str);
+		// })
 	</script>
 </body>
 </html>
